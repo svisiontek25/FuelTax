@@ -1,0 +1,19 @@
+Unit Number,State,Quantity,Transaction Date,Product,Tax Paid,Merchant Name,Net Amount,Invoice Number
+Unit 101,TX,130.50,2026-01-12,DIESEL,TRUE,"Love's Travel Stop #412 (Dallas, TX)",463.28,INV-TX-90112
+Unit 101,AR,125.00,2026-01-13,DIESEL,TRUE,"Pilot Travel Center #218 (Little Rock, AR)",431.25,INV-AR-90113
+Unit 101,TN,95.20,2026-01-14,DIESEL,TRUE,"TA Express #88 (Memphis, TN)",337.96,INV-TN-90114
+Unit 101,TX,140.00,2026-01-21,DIESEL,TRUE,"Buc-ee's Travel Plaza (Fort Worth, TX)",497.00,INV-TX-90121
+Unit 101,IL,110.00,2026-02-08,DIESEL,TRUE,"Petro Stopping Center (Effingham, IL)",418.00,INV-IL-90208
+Unit 102,AR,115.00,2026-01-16,DIESEL,TRUE,"Pilot Travel Center #554 (West Memphis, AR)",396.75,INV-AR-90216
+Unit 102,MO,120.00,2026-01-17,DIESEL,TRUE,"Love's Travel Stop #702 (St. Louis, MO)",414.00,INV-MO-90217
+Unit 102,IL,135.00,2026-01-18,DIESEL,TRUE,"Road Ranger #140 (Chicago, IL)",513.00,INV-IL-90218
+Unit 102,IN,105.00,2026-01-19,DIESEL,TRUE,"Speedway #8812 (Indianapolis, IN)",378.00,INV-IN-90219
+Unit 102,OH,90.00,2026-01-20,DIESEL,TRUE,"TA Travel Center (Columbus, OH)",324.00,INV-OH-90220
+Unit 102,KY,85.00,2026-02-12,DIESEL,TRUE,"Love's Travel Stop #318 (Louisville, KY)",306.00,INV-KY-90212
+Unit 103,TX,150.00,2026-02-01,DIESEL,TRUE,"Pilot Travel Center #112 (Houston, TX)",532.50,INV-TX-90301
+Unit 103,LA,110.00,2026-02-02,DIESEL,TRUE,"Love's Travel Stop #521 (Baton Rouge, LA)",385.00,INV-LA-90302
+Unit 103,AL,120.00,2026-02-04,DIESEL,TRUE,"TA Express #74 (Mobile, AL)",426.00,INV-AL-90304
+Unit 103,GA,95.00,2026-02-05,DIESEL,TRUE,"Pilot Travel Center #441 (Atlanta, GA)",342.00,INV-GA-90305
+Unit 103,FL,125.00,2026-02-07,DIESEL,TRUE,"Love's Travel Stop #610 (Jacksonville, FL)",450.00,INV-FL-90307
+Unit 103,LA,100.00,2026-02-13,DIESEL,TRUE,"Roady's Truck Stop (Shreveport, LA)",350.00,INV-LA-90313
+Unit 103,AR,110.00,2026-03-02,DIESEL,TRUE,"Pilot Travel Center #218 (Little Rock, AR)",379.50,INV-AR-90302

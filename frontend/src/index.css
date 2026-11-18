@@ -1,0 +1,229 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Custom Enterprise Palette */
+  --brand-navy: #1B365D;
+  --brand-cyan: #60C1E5;
+  --brand-steel: #73A5CA;
+  --brand-burgundy: #930031;
+  --brand-plum: #542177;
+  --brand-red: #E00000;
+  --brand-olive: #5B6E2C;
+  --brand-charcoal: #28301C;
+  --brand-amber: #CE7F20;
+  --brand-sage: #9DBEB8;
+
+  /* Semantic Mappings */
+  --primary: #1B365D;
+  --primary-hover: #274a7d;
+  --primary-light: #eef6fb;
+  --accent: #60C1E5;
+  --bg-main: #f3f7f6;
+  --bg-card: #ffffff;
+  --text-main: #28301C;
+  --text-muted: #556663;
+  --border: #cbd8d5;
+  --border-focus: #60C1E5;
+  --success: #5B6E2C;
+  --success-bg: #eff4e8;
+  --warning: #CE7F20;
+  --warning-bg: #fdf4e7;
+  --danger: #E00000;
+  --danger-bg: #fdeaea;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #e6efed;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--brand-steel);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-navy);
+}
+
+/* Layout Utilities */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px 20px 48px;
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 6px rgba(27, 54, 93, 0.05);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 18px rgba(27, 54, 93, 0.09);
+  border-color: var(--brand-sage);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: var(--brand-navy);
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(27, 54, 93, 0.2);
+}
+.btn-primary:hover {
+  background-color: #24477a;
+  box-shadow: 0 4px 10px rgba(27, 54, 93, 0.28);
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: var(--brand-navy);
+  border-color: var(--brand-sage);
+}
+.btn-secondary:hover {
+  background-color: #f0f7f5;
+  border-color: var(--brand-steel);
+}
+
+.btn-accent {
+  background-color: var(--brand-cyan);
+  color: var(--brand-navy);
+  font-weight: 700;
+}
+.btn-accent:hover {
+  background-color: #4bb5dd;
+}
+
+.btn-danger {
+  background-color: var(--brand-red);
+  color: #ffffff;
+}
+.btn-danger:hover {
+  background-color: #b80000;
+}
+
+.btn-sm {
+  padding: 5px 11px;
+  font-size: 12px;
+}
+
+/* Form Inputs */
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-main);
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.form-input:focus {
+  border-color: var(--brand-cyan);
+  box-shadow: 0 0 0 3px rgba(96, 193, 229, 0.22);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 9999px;
+}
+.badge-success {
+  background-color: var(--success-bg);
+  color: var(--brand-olive);
+  border: 1px solid rgba(91, 110, 44, 0.25);
+}
+.badge-warning {
+  background-color: var(--warning-bg);
+  color: var(--brand-amber);
+  border: 1px solid rgba(206, 127, 32, 0.25);
+}
+.badge-danger {
+  background-color: var(--danger-bg);
+  color: var(--brand-red);
+  border: 1px solid rgba(224, 0, 0, 0.25);
+}
+.badge-info {
+  background-color: #e6f5fb;
+  color: var(--brand-navy);
+  border: 1px solid rgba(115, 165, 202, 0.4);
+}
+.badge-plum {
+  background-color: #f4ecf9;
+  color: var(--brand-plum);
+  border: 1px solid rgba(84, 33, 119, 0.25);
+}
+.badge-burgundy {
+  background-color: #fbeaf0;
+  color: var(--brand-burgundy);
+  border: 1px solid rgba(147, 0, 49, 0.25);
+}
+
+/* Accounting Credits & Dues */
+.credit-val {
+  color: var(--brand-olive);
+  font-weight: 700;
+}
+.due-val {
+  color: var(--brand-burgundy);
+  font-weight: 700;
+}
