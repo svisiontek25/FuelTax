@@ -12,6 +12,7 @@ import csv
 import zipfile
 import json
 from datetime import datetime
+from typing import List, Dict, Optional, Any
 from database import get_connection
 from pdf_generator import generate_pdf_bytes
 
