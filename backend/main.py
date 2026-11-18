@@ -15,7 +15,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional, Dict, Any
 import uuid
 import json
+import sys
+import os
 from datetime import datetime
+
+# Ensure backend directory is in sys.path for direct module resolution
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
 
 from database import get_connection, init_db, hash_password, verify_password
 from auth import create_access_token, get_current_user
