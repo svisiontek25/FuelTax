@@ -2,7 +2,7 @@
  * FuelTaxPulse API Client (Updated for Full Functional Specifications)
  */
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000/api' : '/api');
 
 export const getAuthToken = () => localStorage.getItem('fueltaxpulse_token');
 export const setAuthToken = (token) => localStorage.setItem('fueltaxpulse_token', token);

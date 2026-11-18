@@ -77,3 +77,21 @@ run_app.bat
 * **Super Admin:** `admin@fueltaxpulse.com` / `admin123`
 * **Fleet Tax Manager:** `manager@fueltaxpulse.com` / `manager123`
 * **Auditor:** `auditor@fueltaxpulse.com` / `auditor123`
+
+---
+
+## 🌐 Deploying to Vercel
+
+### Method A: Full-Stack Monorepo Deployment (Zero-Config)
+1. Go to [Vercel Dashboard](https://vercel.com/new) and click **"Add New..." > "Project"**.
+2. Import the `FuelTax` repository (`svisiontek25/FuelTax`).
+3. Leave **Root Directory** as `./` (the root). Vercel uses `vercel.json` to build the frontend and deploy the FastAPI backend as Python Serverless Functions in `api/`.
+4. Click **Deploy**.
+
+### Method B: Frontend Only on Vercel (Production Setup with External API)
+If hosting the FastAPI backend on a dedicated service (e.g. Render, Railway, Fly.io):
+1. Import the repository on Vercel.
+2. In Project Settings, set **Root Directory** to `frontend`.
+3. Under **Environment Variables**, add:
+   * `VITE_API_BASE_URL`: `https://your-backend-api-url.com/api`
+4. Click **Deploy**.

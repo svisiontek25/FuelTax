@@ -18,7 +18,11 @@ import hashlib
 from typing import Dict, List, Optional
 import bcrypt
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "fueltaxpulse.db")
+DB_PATH = os.environ.get(
+    "DATABASE_PATH",
+    "/tmp/fueltaxpulse.db" if (os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+    else os.path.join(os.path.dirname(__file__), "fueltaxpulse.db")
+)
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
