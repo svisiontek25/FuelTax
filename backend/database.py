@@ -18,11 +18,7 @@ import hashlib
 from typing import Dict, List, Optional
 import bcrypt
 
-DB_PATH = os.environ.get(
-    "DATABASE_PATH",
-    "/tmp/fueltaxpulse.db" if (os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
-    else os.path.join(os.path.dirname(__file__), "fueltaxpulse.db")
-)
+DB_PATH = os.path.join(os.path.dirname(__file__), "fueltaxpulse.db")
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -408,6 +404,21 @@ def init_db():
 
     conn.commit()
 
+    # Safe Non-Destructive Schema Migrations for Existing Databases
+    for alter_sql in [
+        "ALTER TABLE customers ADD COLUMN bank_routing_number TEXT;",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN effective_date TEXT DEFAULT '2026-01-01';",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN version TEXT DEFAULT 'v2026.1 (IFTA Inc.)';",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN updated_at TEXT DEFAULT '2026-01-01 00:00:00';",
+        "ALTER TABLE mileage_records ADD COLUMN origin_zip TEXT;",
+        "ALTER TABLE mileage_records ADD COLUMN destination_zip TEXT;",
+    ]:
+        try:
+            cursor.execute(alter_sql)
+            conn.commit()
+        except Exception:
+            pass
+
     # -------------------------------------------------------------------------
     # SEEDING INITIAL MASTER DATA
     # -------------------------------------------------------------------------
@@ -420,6 +431,21 @@ def init_db():
             VALUES (?, 2026, '2026-Q1', ?, ?, ?, ?, ?, ?)
             """, (str(uuid.uuid4()), jur, ftype.upper(), trate, surch, wmr, curr))
         conn.commit()
+
+    # Safe Non-Destructive Schema Migrations for Existing Databases
+    for alter_sql in [
+        "ALTER TABLE customers ADD COLUMN bank_routing_number TEXT;",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN effective_date TEXT DEFAULT '2026-01-01';",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN version TEXT DEFAULT 'v2026.1 (IFTA Inc.)';",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN updated_at TEXT DEFAULT '2026-01-01 00:00:00';",
+        "ALTER TABLE mileage_records ADD COLUMN origin_zip TEXT;",
+        "ALTER TABLE mileage_records ADD COLUMN destination_zip TEXT;",
+    ]:
+        try:
+            cursor.execute(alter_sql)
+            conn.commit()
+        except Exception:
+            pass
 
     # 2. Seed Default Organization & Multiple Fleets
     cursor.execute("SELECT COUNT(*) FROM organizations WHERE name = 'TransNational Logistics Group'")
@@ -556,6 +582,21 @@ def init_db():
         """, (cust_id, org_id, fleet1_id))
 
         conn.commit()
+
+    # Safe Non-Destructive Schema Migrations for Existing Databases
+    for alter_sql in [
+        "ALTER TABLE customers ADD COLUMN bank_routing_number TEXT;",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN effective_date TEXT DEFAULT '2026-01-01';",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN version TEXT DEFAULT 'v2026.1 (IFTA Inc.)';",
+        "ALTER TABLE ifta_tax_rates ADD COLUMN updated_at TEXT DEFAULT '2026-01-01 00:00:00';",
+        "ALTER TABLE mileage_records ADD COLUMN origin_zip TEXT;",
+        "ALTER TABLE mileage_records ADD COLUMN destination_zip TEXT;",
+    ]:
+        try:
+            cursor.execute(alter_sql)
+            conn.commit()
+        except Exception:
+            pass
 
     conn.close()
 

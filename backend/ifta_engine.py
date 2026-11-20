@@ -150,7 +150,8 @@ class IFTAEngine:
                                 period: str,
                                 total_units: int,
                                 fuel_type: str,
-                                state_data: List[Dict]) -> Dict:
+                                state_data: List[Dict],
+                                trip_count: Optional[int] = None) -> Dict:
         """
         Calculates exact Fleet Fuel Tax Summary table replicating ProMiles FuelTaxOnline.
         state_data item format:
@@ -313,12 +314,15 @@ class IFTAEngine:
 
         total_due = round_half_up(tot_ifta_due + tot_mile_tax_due + tot_interest, 2)
 
+        has_activity = (tot_all_miles > 0 or tot_all_gallons > 0)
+        effective_trip_count = (trip_count if trip_count is not None else total_units) if has_activity else 0
+
         return {
             "metadata": {
                 "company_name": company_name,
                 "period": period,
-                "total_units": total_units,
-                "trip_count": total_units,
+                "total_units": total_units if has_activity else 0,
+                "trip_count": effective_trip_count,
                 "fuel_type": fuel_type,
                 "total_miles": tot_all_miles,
                 "total_fuel": tot_tax_paid_gallons,

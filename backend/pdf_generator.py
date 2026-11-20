@@ -1,14 +1,17 @@
 """
-FuelTaxPulse PDF Tax Schedule Generator
-Generates print-ready landscape PDF schedules replicating ProMiles FuelTaxOnline specifications.
+FuelTaxPulse PDF Tax Schedule & Unit Summary Generator
+Generates:
+1. Official Landscape IFTA Schedule 1 Fleet Fuel Tax Summary PDF
+2. Vehicle-Level State-Wise Unit Summary PDF Report (Module 10 - Single Unit or All Units)
 """
 
 import io
+from datetime import datetime
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
@@ -30,7 +33,6 @@ def generate_pdf_bytes(report_data: dict) -> bytes:
 
     story = []
 
-    # Title
     title_style = ParagraphStyle(
         'RepTitle',
         parent=styles['Heading1'],
@@ -42,16 +44,15 @@ def generate_pdf_bytes(report_data: dict) -> bytes:
     story.append(Paragraph("Fleet Fuel Tax Summary", title_style))
     story.append(Spacer(1, 4))
 
-    # Metadata Header
     meta_data = [
         [
             Paragraph(f"<b>Company:</b> {meta.get('company_name', '')}", styles['Normal']),
             Paragraph(f"<b>Period:</b> {meta.get('period', '')}", styles['Normal']),
-            Paragraph(f"<b>Total Units:</b> {meta.get('total_units', '')}", styles['Normal']),
-            Paragraph(f"<b>Fuel Type:</b> {meta.get('fuel_type', 'Diesel')}", styles['Normal']),
+            Paragraph(f"<b>Total Units:</b> {meta.get('total_units', 0)}", styles['Normal']),
+            Paragraph("<b>Fuel Type:</b> Diesel", styles['Normal']),
         ]
     ]
-    meta_table = Table(meta_data, colWidths=[200, 180, 150, 150])
+    meta_table = Table(meta_data, colWidths=[220, 180, 140, 140])
     meta_table.setStyle(TableStyle([
         ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
         ('FONTSIZE', (0,0), (-1,-1), 9),
@@ -61,7 +62,6 @@ def generate_pdf_bytes(report_data: dict) -> bytes:
     story.append(meta_table)
     story.append(Spacer(1, 8))
 
-    # KPI Summary Boxes
     box_w = 110
     kpi_headers = ["Trip Count", "Total Miles", "Total Fuel (gal)", "Fleet MPG", "Total Due"]
     kpi_values = [
@@ -91,7 +91,6 @@ def generate_pdf_bytes(report_data: dict) -> bytes:
     story.append(kpi_table)
     story.append(Spacer(1, 10))
 
-    # 17-Column Table
     table_headers = [
         "State", "All\nMiles", "Non Toll\nMiles", "Toll\nMiles", "Thru\nToll",
         "Permit\nMiles", "Off\nRoad", "Taxable\nMiles", "All\nGal", "Non-Tax\nGal",
@@ -100,7 +99,6 @@ def generate_pdf_bytes(report_data: dict) -> bytes:
     ]
 
     col_w = [34, 44, 44, 34, 34, 38, 34, 46, 40, 42, 44, 44, 44, 42, 38, 52, 52]
-
     table_data = [[Paragraph(f"<b>{h.replace(chr(10), '<br/>')}</b>", styles['Normal']) for h in table_headers]]
 
     for r in rows:
@@ -136,7 +134,6 @@ def generate_pdf_bytes(report_data: dict) -> bytes:
         ]
         table_data.append([Paragraph(str(c), styles['Normal']) for c in row_cells])
 
-    # Totals Row
     tot_cells = [
         "Totals",
         f"{totals['all_miles']:,}",
@@ -173,6 +170,160 @@ def generate_pdf_bytes(report_data: dict) -> bytes:
         ('BOTTOMPADDING', (0,0), (-1,-1), 2),
     ]))
     story.append(report_table)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def generate_unit_summary_pdf_bytes(unit_report: dict) -> bytes:
+    """
+    Module 10: Generates print-ready Landscape PDF for Vehicle-Level State-Wise Unit Summary Report.
+    Includes:
+    - Company / Application Name
+    - Report Title
+    - Selected Unit Number (e.g., 'Unit 101' or 'All Power Units')
+    - Reporting Period & Filters
+    - State-Wise Details Table
+    - Total Mileage, Fuel, and Tax Summary
+    - Report Generation Date
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(letter),
+        leftMargin=0.4 * inch,
+        rightMargin=0.4 * inch,
+        topMargin=0.4 * inch,
+        bottomMargin=0.4 * inch
+    )
+
+    styles = getSampleStyleSheet()
+    story = []
+
+    title_style = ParagraphStyle(
+        'UnitRepTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        leading=20,
+        textColor=colors.HexColor('#1B365D'),
+        fontName='Helvetica-Bold'
+    )
+    sub_style = ParagraphStyle(
+        'UnitRepSub',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor('#475569')
+    )
+
+    company_name = unit_report.get("company_name", "FuelTaxPulse Enterprise Carrier")
+    selected_unit = unit_report.get("selected_unit") or "ALL"
+    unit_label = "All Power Units (Fleet-Wide State Breakdown)" if selected_unit == "ALL" else f"Power Unit: {selected_unit}"
+    quarter = unit_report.get("quarter", "2026-Q1")
+    state_filter = unit_report.get("selected_state") or "ALL"
+    date_range = unit_report.get("date_range_label", f"Full Quarter ({quarter})")
+    gen_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    story.append(Paragraph("FuelTaxPulse Enterprise — Vehicle-Level State-Wise Unit Summary Report", title_style))
+    story.append(Paragraph(f"Generated on: {gen_date} • Fuel Type: Diesel • IFTA Compliance Audit Report", sub_style))
+    story.append(Spacer(1, 8))
+
+    # Metadata Header Table
+    meta_data = [
+        [
+            Paragraph(f"<b>Company / Carrier:</b> {company_name}", styles['Normal']),
+            Paragraph(f"<b>Selected Unit:</b> {unit_label}", styles['Normal']),
+            Paragraph(f"<b>Reporting Period:</b> {quarter}", styles['Normal']),
+            Paragraph(f"<b>State / Date Filter:</b> {state_filter} ({date_range})", styles['Normal']),
+        ]
+    ]
+    meta_table = Table(meta_data, colWidths=[200, 200, 130, 190])
+    meta_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 10))
+
+    # KPI Summary Strip
+    totals = unit_report.get("totals", {})
+    kpi_headers = ["Total Miles", "Taxable Miles", "Non-Taxable Miles", "Fuel Quantity (Gal)", "Fuel Cost ($)", "Average MPG", "Est. Net IFTA Tax"]
+    kpi_values = [
+        f"{totals.get('total_miles', 0):,.1f} mi",
+        f"{totals.get('taxable_miles', 0):,.1f} mi",
+        f"{totals.get('non_taxable_miles', 0):,.1f} mi",
+        f"{totals.get('fuel_gallons', 0):,.2f} gal",
+        f"${totals.get('fuel_cost', 0):,.2f}",
+        f"{totals.get('mpg', 0):.2f} MPG",
+        f"${totals.get('est_ifta_tax', 0):,.2f}"
+    ]
+    kpi_table = Table([
+        [Paragraph(f"<b>{h}</b>", styles['Normal']) for h in kpi_headers],
+        [Paragraph(f"<b>{v}</b>", styles['Normal']) for v in kpi_values]
+    ], colWidths=[102]*7)
+    kpi_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e2e8f0')),
+        ('BACKGROUND', (0,1), (-1,1), colors.white),
+        ('GRID', (0,0), (-1,-1), 0.75, colors.HexColor('#94a3b8')),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(kpi_table)
+    story.append(Spacer(1, 12))
+
+    # State-Wise Details Table
+    headers = [
+        "Unit Number", "State", "Total Miles", "Taxable Miles", "Non-Taxable",
+        "Fuel Qty (Gal)", "Fuel Purchases ($)", "Receipts", "Tax Rate", "Est. IFTA Tax ($)"
+    ]
+    col_widths = [78, 52, 74, 74, 68, 76, 86, 54, 66, 86]
+    table_rows = [[Paragraph(f"<b>{h}</b>", styles['Normal']) for h in headers]]
+
+    state_rows = unit_report.get("state_rows", [])
+    for r in state_rows:
+        table_rows.append([
+            Paragraph(str(r.get("unit_number", "")), styles['Normal']),
+            Paragraph(f"<b>{r.get('jurisdiction', '')}</b>", styles['Normal']),
+            Paragraph(f"{float(r.get('total_miles', 0)):,.1f}", styles['Normal']),
+            Paragraph(f"{float(r.get('taxable_miles', 0)):,.1f}", styles['Normal']),
+            Paragraph(f"{float(r.get('non_taxable_miles', 0)):,.1f}", styles['Normal']),
+            Paragraph(f"{float(r.get('fuel_gallons', 0)):,.2f}", styles['Normal']),
+            Paragraph(f"${float(r.get('fuel_cost', 0)):,.2f}", styles['Normal']),
+            Paragraph(str(r.get("fuel_receipt_count", 0)), styles['Normal']),
+            Paragraph(f"${float(r.get('tax_rate', 0)):.4f}", styles['Normal']),
+            Paragraph(f"${float(r.get('est_ifta_tax', 0)):,.2f}", styles['Normal']),
+        ])
+
+    # Footer Totals row
+    table_rows.append([
+        Paragraph("<b>TOTALS</b>", styles['Normal']),
+        Paragraph(f"<b>{len(state_rows)} rows</b>", styles['Normal']),
+        Paragraph(f"<b>{totals.get('total_miles', 0):,.1f}</b>", styles['Normal']),
+        Paragraph(f"<b>{totals.get('taxable_miles', 0):,.1f}</b>", styles['Normal']),
+        Paragraph(f"<b>{totals.get('non_taxable_miles', 0):,.1f}</b>", styles['Normal']),
+        Paragraph(f"<b>{totals.get('fuel_gallons', 0):,.2f}</b>", styles['Normal']),
+        Paragraph(f"<b>${totals.get('fuel_cost', 0):,.2f}</b>", styles['Normal']),
+        Paragraph(f"<b>{totals.get('fuel_receipt_count', 0)}</b>", styles['Normal']),
+        Paragraph("<b>—</b>", styles['Normal']),
+        Paragraph(f"<b>${totals.get('est_ifta_tax', 0):,.2f}</b>", styles['Normal']),
+    ])
+
+    det_table = Table(table_rows, colWidths=col_widths, repeatRows=1)
+    det_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1B365D')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#f1f5f9')),
+        ('LINEABOVE', (0,-1), (-1,-1), 1.5, colors.HexColor('#0f172a')),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(det_table)
 
     doc.build(story)
     buffer.seek(0)

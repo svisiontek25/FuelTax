@@ -3,16 +3,17 @@ FuelTaxPulse Export & Audit Defense Package Generator
 Supports:
 1. Standard IFTA Schedule 1 CSV Export
 2. State E-File Bulk Upload CSV Export
-3. Vehicle-Level Unit Summary Report (CSV & Excel)
-4. Full Audit Defense ZIP Package containing PDF, CSVs, raw files, and audit trail
+3. Vehicle-Level Unit Summary Report (CSV)
+4. Fuel Purchase 4-Column Export (Unit Number, State, Quantity, Transaction Date) - Module 3
+5. Mileage Ingestion Export (Vehicle ID, Jurisdiction, Total Distance, Taxable Distance, Exempt Distance, Date) - Module 2
+6. Full Audit Defense ZIP Package containing PDF, CSVs, raw files, and audit trail
 """
 
 import io
 import csv
 import zipfile
-import json
 from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import List, Dict
 from database import get_connection
 from pdf_generator import generate_pdf_bytes
 
@@ -24,7 +25,7 @@ def generate_schedule1_csv(report_data: dict) -> str:
     writer.writerow(["IFTA QUARTERLY FUEL USE TAX RETURN - SCHEDULE 1"])
     writer.writerow(["Carrier Legal Name", meta.get("company_name", "")])
     writer.writerow(["Reporting Period", meta.get("period", "")])
-    writer.writerow(["Fuel Type", meta.get("fuel_type", "DIESEL")])
+    writer.writerow(["Fuel Type", "DIESEL"])
     writer.writerow(["Fleet Total Miles", meta.get("total_miles", 0)])
     writer.writerow(["Fleet Total Fuel (gal)", meta.get("total_fuel", 0)])
     writer.writerow(["Fleet Average MPG", f"{meta.get('fleet_mpg', 0):.2f}"])
@@ -86,19 +87,17 @@ def generate_state_efile_csv(fleet_id: str, quarter: str, fuel_type: str, report
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # State E-File Standard Header
     writer.writerow(["RECORD_TYPE", "ACCOUNT_NUM", "FEIN", "BASE_STATE", "QUARTER", "FUEL_TYPE", "FLEET_MPG"])
     writer.writerow([
         "HDR",
-        f_row["ifta_account_number"] if f_row else "AR-8839210-26",
-        f_row["fein"] if f_row else "84-9281729",
-        f_row["base_jurisdiction"] if f_row else "AR",
+        (f_row["ifta_account_number"] or "PENDING") if f_row else "PENDING",
+        (f_row["fein"] or "N/A") if f_row else "N/A",
+        (f_row["base_jurisdiction"] or "AR") if f_row else "AR",
         quarter,
-        fuel_type.upper(),
+        "DIESEL",
         f"{report_data['metadata'].get('fleet_mpg', 0):.2f}"
     ])
 
-    # Detail Lines
     writer.writerow(["RECORD_TYPE", "JURISDICTION", "TOTAL_MILES", "TAXABLE_MILES", "TAX_PAID_GAL", "TAXABLE_GAL", "NET_GAL", "TAX_DUE"])
     for r in report_data["rows"]:
         if not r.get("is_surcharge_row"):
@@ -113,6 +112,69 @@ def generate_state_efile_csv(fleet_id: str, quarter: str, fuel_type: str, report
                 r.get("ifta_tax_due", 0)
             ])
 
+    return output.getvalue()
+
+def generate_fuel_purchases_csv(fleet_id: str, quarter: str) -> str:
+    """
+    Module 3: Fuel Purchase Export containing ONLY the 4 required columns:
+    1. Unit Number
+    2. State
+    3. Quantity
+    4. Transaction Date
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT unit_number, jurisdiction, gallons, transaction_date
+        FROM fuel_transactions
+        WHERE fleet_id = ? AND reporting_quarter = ?
+        ORDER BY transaction_date ASC, unit_number ASC
+    """, (fleet_id, quarter))
+    rows = cursor.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Unit Number", "State", "Quantity", "Transaction Date"])
+    for r in rows:
+        qty = float(r["gallons"] or 0)
+        qty_str = f"{qty:.3f}".rstrip("0").rstrip(".") if "." in f"{qty:.3f}" else str(qty)
+        writer.writerow([
+            r["unit_number"],
+            r["jurisdiction"],
+            qty_str,
+            r["transaction_date"]
+        ])
+    return output.getvalue()
+
+def generate_mileage_records_csv(fleet_id: str, quarter: str) -> str:
+    """
+    Module 2: Mileage Export / Template without BOL Number, Odometer Start, Odometer End.
+    Columns: Vehicle ID, Jurisdiction, Total Distance, Taxable Distance, Exempt Distance, Date
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT unit_number, jurisdiction, total_miles, taxable_miles, non_taxable_miles, COALESCE(trip_date, '') as trip_date
+        FROM mileage_records
+        WHERE fleet_id = ? AND reporting_quarter = ?
+        ORDER BY trip_date ASC, unit_number ASC
+    """, (fleet_id, quarter))
+    rows = cursor.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Vehicle ID", "Jurisdiction", "Total Distance", "Taxable Distance", "Exempt Distance", "Date"])
+    for r in rows:
+        writer.writerow([
+            r["unit_number"],
+            r["jurisdiction"],
+            r["total_miles"],
+            r["taxable_miles"],
+            r["non_taxable_miles"],
+            r["trip_date"]
+        ])
     return output.getvalue()
 
 def generate_unit_summary_csv(unit_breakdown: List[Dict]) -> str:
@@ -130,22 +192,11 @@ def generate_unit_summary_csv(unit_breakdown: List[Dict]) -> str:
     return output.getvalue()
 
 def build_audit_defense_zip_package(fleet_id: str, quarter: str, fuel_type: str, report_data: dict, unit_breakdown: List[Dict]) -> bytes:
-    """
-    Assembles complete IFTA Audit Defense Package:
-    - Official Landscape PDF
-    - Schedule 1 CSV
-    - State E-File CSV
-    - Unit-level Breakdown CSV
-    - Fuel Receipts Ledger CSV
-    - Raw Ingested CSV Files
-    - Audit Trail Log
-    """
     buffer = io.BytesIO()
 
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Fetch raw import batches
     cursor.execute("""
         SELECT filename, file_sha256, raw_content, created_at
         FROM import_batches
@@ -153,16 +204,6 @@ def build_audit_defense_zip_package(fleet_id: str, quarter: str, fuel_type: str,
     """, (fleet_id, quarter))
     raw_batches = cursor.fetchall()
 
-    # Fetch fuel receipts
-    cursor.execute("""
-        SELECT transaction_date, unit_number, jurisdiction, gallons, fuel_type, tax_paid_at_pump, vendor_name, invoice_or_receipt_number, total_cost
-        FROM fuel_transactions
-        WHERE fleet_id = ? AND reporting_quarter = ?
-        ORDER BY transaction_date ASC
-    """, (fleet_id, quarter))
-    fuel_rows = cursor.fetchall()
-
-    # Fetch audit logs
     cursor.execute("""
         SELECT timestamp, user_name, action, details
         FROM audit_logs
@@ -176,27 +217,23 @@ def build_audit_defense_zip_package(fleet_id: str, quarter: str, fuel_type: str,
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as z:
         # 1. PDF Return
         pdf_bytes = generate_pdf_bytes(report_data)
-        z.writestr(f"IFTA_Official_Return_{quarter}_{fuel_type}.pdf", pdf_bytes)
+        z.writestr(f"IFTA_Official_Return_{quarter}_Diesel.pdf", pdf_bytes)
 
         # 2. Schedule 1 CSV
         sched1_csv = generate_schedule1_csv(report_data)
         z.writestr(f"IFTA_Schedule1_{quarter}.csv", sched1_csv)
 
         # 3. State E-File CSV
-        efile_csv = generate_state_efile_csv(fleet_id, quarter, fuel_type, report_data)
+        efile_csv = generate_state_efile_csv(fleet_id, quarter, "Diesel", report_data)
         z.writestr(f"State_EFile_Bulk_Upload_{quarter}.csv", efile_csv)
 
         # 4. Unit Summary CSV
         unit_csv = generate_unit_summary_csv(unit_breakdown)
         z.writestr(f"Vehicle_Unit_Summary_{quarter}.csv", unit_csv)
 
-        # 5. Fuel Receipts Ledger
-        f_buf = io.StringIO()
-        f_writer = csv.writer(f_buf)
-        f_writer.writerow(["Date", "Unit", "State", "Gallons", "Fuel Type", "Tax Paid at Pump", "Vendor", "Invoice/Receipt", "Total Cost"])
-        for fr in fuel_rows:
-            f_writer.writerow([fr["transaction_date"], fr["unit_number"], fr["jurisdiction"], fr["gallons"], fr["fuel_type"], bool(fr["tax_paid_at_pump"]), fr["vendor_name"], fr["invoice_or_receipt_number"], fr["total_cost"]])
-        z.writestr(f"Fuel_Receipts_Ledger_{quarter}.csv", f_buf.getvalue())
+        # 5. Fuel Purchases 4-Column Export (Module 3 compliant)
+        fuel_csv = generate_fuel_purchases_csv(fleet_id, quarter)
+        z.writestr(f"Fuel_Purchases_{quarter}.csv", fuel_csv)
 
         # 6. Raw Ingested CSV Files
         for rb in raw_batches:

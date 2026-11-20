@@ -159,7 +159,7 @@ export default function Navbar({
           flexShrink: 0,
           marginLeft: 'auto'
         }}>
-          {/* Quarter Selector */}
+          {/* Quarter Selector (Fuel Type Dropdown Removed per Module 6 - Diesel Only) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <span style={{ fontSize: '11px', color: '#9DBEB8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
               Quarter:
@@ -183,33 +183,6 @@ export default function Navbar({
               <option value="2026-Q1" style={{ background: '#1B365D' }}>2026-Q1 (Jan - Mar)</option>
               <option value="2025-Q4" style={{ background: '#1B365D' }}>2025-Q4 (Oct - Dec)</option>
               <option value="2025-Q3" style={{ background: '#1B365D' }}>2025-Q3 (Jul - Sep)</option>
-            </select>
-          </div>
-
-          {/* Fuel Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ fontSize: '11px', color: '#9DBEB8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-              Fuel:
-            </span>
-            <select
-              value={fuelType}
-              onChange={(e) => setFuelType(e.target.value)}
-              style={{
-                width: 'auto',
-                padding: '4px 8px',
-                fontSize: '11.5px',
-                fontWeight: '600',
-                background: 'rgba(255,255,255,0.08)',
-                color: '#ffffff',
-                border: '1px solid #73A5CA',
-                borderRadius: '6px',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="Diesel" style={{ background: '#1B365D' }}>Diesel</option>
-              <option value="Gasoline" style={{ background: '#1B365D' }}>Gasoline</option>
-              <option value="Propane" style={{ background: '#1B365D' }}>Propane</option>
             </select>
           </div>
 

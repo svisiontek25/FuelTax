@@ -11,9 +11,17 @@ const US_STATES = [
 
 export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
   const [activeTab, setActiveTab] = useState('info'); // 'info', 'accounts', 'options', 'notes', 'employee', 'customer'
+  const [hasReachedCustomerAccess, setHasReachedCustomerAccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleSelectTab = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'customer') {
+      setHasReachedCustomerAccess(true);
+    }
+  };
 
   // Form State matching all fields from Screenshots 154-157
   const [form, setForm] = useState({
@@ -42,13 +50,6 @@ export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
     president_name: '',
     president_ssn: '',
     account_number: '',
-    // Tab 1: Other Information
-    date_incorporated: '',
-    state_of_incorporation: '',
-    corporation_number: '',
-    officer_title: '',
-    officer_name: '',
-    officer_ssn: '',
 
     // Tab 2: Accounts (Regulatory & Tax Permits - Screenshots 156 & 157)
     ifta_state: '',
@@ -81,6 +82,7 @@ export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
     strict_adjacency: true,
     auto_liters_conversion: true,
     bank_name: '',
+    bank_routing_number: '',
     bank_account_number: '',
     billing_email: '',
     fuel_card_provider: '',
@@ -134,6 +136,29 @@ export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
       setActiveTab('info');
       setSaving(false);
       return;
+    }
+
+    // Validate Bank Routing Number (must be 9 numeric digits if provided)
+    const rawRouting = String(form.bank_routing_number || '').trim();
+    if (rawRouting && !rawRouting.includes('•') && !rawRouting.includes('*')) {
+      if (!/^\d{9}$/.test(rawRouting)) {
+        setError('Invalid Bank Routing Number. Standard ABA routing number must be exactly 9 numeric digits.');
+        setActiveTab('options');
+        setSaving(false);
+        return;
+      }
+    }
+
+    // Validate Bank Account Number (4-17 numeric digits, leading zeros preserved)
+    const rawAccount = String(form.bank_account_number || '').trim();
+    if (rawAccount && !rawAccount.includes('•') && !rawAccount.includes('*')) {
+      const cleanAcc = rawAccount.replace(/[-\s]/g, '');
+      if (!/^\d{4,17}$/.test(cleanAcc)) {
+        setError('Invalid Bank Account Number. Must contain between 4 and 17 numeric digits (leading zeros supported).');
+        setActiveTab('options');
+        setSaving(false);
+        return;
+      }
     }
 
     try {
@@ -232,7 +257,7 @@ export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleSelectTab(tab.id)}
                 style={{
                   padding: '9px 18px',
                   fontSize: '14px',
@@ -566,95 +591,6 @@ export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
                   </div>
                 </div>
               </div>
-
-              {/* Sub-section: Other Information (Screenshot 155) */}
-              <div style={{ marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', marginBottom: '16px' }}>
-                  Other Information
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 28px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
-                        Date Incorporated
-                      </label>
-                      <input
-                        type="date"
-                        value={form.date_incorporated}
-                        onChange={(e) => handleChange('date_incorporated', e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
-                        Corporation Number
-                      </label>
-                      <input
-                        type="text"
-                        value={form.corporation_number}
-                        onChange={(e) => handleChange('corporation_number', e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
-                        Officer Name
-                      </label>
-                      <input
-                        type="text"
-                        value={form.officer_name}
-                        onChange={(e) => handleChange('officer_name', e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
-                        State of Incorporation
-                      </label>
-                      <select
-                        value={form.state_of_incorporation}
-                        onChange={(e) => handleChange('state_of_incorporation', e.target.value)}
-                        className="form-input"
-                      >
-                        <option value="">Select...</option>
-                        {US_STATES.map((st) => (
-                          <option key={st} value={st}>{st}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
-                        Officer Title
-                      </label>
-                      <input
-                        type="text"
-                        value={form.officer_title}
-                        onChange={(e) => handleChange('officer_title', e.target.value)}
-                        placeholder="e.g. Managing Partner, President"
-                        className="form-input"
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
-                        Officer SSN
-                      </label>
-                      <input
-                        type="password"
-                        value={form.officer_ssn}
-                        onChange={(e) => handleChange('officer_ssn', e.target.value)}
-                        className="form-input font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -945,18 +881,13 @@ export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
                     <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
                       Default Fleet Fuel Type
                     </label>
-                    <select
-                      value={form.default_fuel_type}
-                      onChange={(e) => handleChange('default_fuel_type', e.target.value)}
+                    <input
+                      type="text"
+                      value="Diesel (DI)"
+                      readOnly
                       className="form-input"
-                    >
-                      <option value="Diesel">Diesel (DI)</option>
-                      <option value="Gasoline">Gasoline (GA)</option>
-                      <option value="Propane">Propane (LPG)</option>
-                      <option value="CNG">Compressed Natural Gas (CNG)</option>
-                      <option value="LNG">Liquefied Natural Gas (LNG)</option>
-                      <option value="Biodiesel">Biodiesel (BD)</option>
-                    </select>
+                      style={{ background: '#f1f5f9', fontWeight: '600', color: '#334155' }}
+                    />
                   </div>
 
                   <div>
@@ -1019,13 +950,30 @@ export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
-                      Bank Account Number
+                      Bank Routing Number (9 Digits)
                     </label>
                     <input
-                      type="text"
-                      value={form.bank_account_number}
+                      type="password"
+                      value={form.bank_routing_number || ''}
+                      onChange={(e) => handleChange('bank_routing_number', e.target.value)}
+                      placeholder="••••••••• (9-digit ABA)"
+                      maxLength={9}
+                      autoComplete="off"
+                      className="form-input font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', color: '#1e293b', marginBottom: '4px' }}>
+                      Bank Account Number (Leading Zeros Supported)
+                    </label>
+                    <input
+                      type="password"
+                      value={form.bank_account_number || ''}
                       onChange={(e) => handleChange('bank_account_number', e.target.value)}
                       placeholder="••••••••4810"
+                      maxLength={17}
+                      autoComplete="off"
                       className="form-input font-mono"
                     />
                   </div>
@@ -1158,54 +1106,87 @@ export default function CustomerMasterModal({ customerId, onClose, onSaved }) {
           )}
         </div>
 
-        {/* Modal Footer (Screenshots 155 & 157 style: Blue 'Save Customer' + Gray 'Close') */}
+        {/* Modal Footer (Save Customer activates after reaching the Customer Access tab) */}
         <div style={{
           padding: '14px 24px',
           borderTop: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           gap: '12px',
           background: '#ffffff',
           flexShrink: 0
         }}>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              background: '#0284c7', // Exact blue color from Screenshot (157).png
-              color: '#ffffff',
-              padding: '8px 24px',
-              fontSize: '14px',
-              fontWeight: '600',
-              borderRadius: '4px',
-              border: 'none',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            {saving ? 'Saving...' : 'Save Customer'}
-          </button>
+          <div style={{ fontSize: '12.5px', color: hasReachedCustomerAccess ? '#16a34a' : '#64748b', fontWeight: '600' }}>
+            {hasReachedCustomerAccess
+              ? '✓ Customer Access tab reached — Save Customer is active.'
+              : 'Navigate to the "Customer Access" tab to activate Save Customer.'}
+          </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: '#64748b', // Exact gray color from Screenshot (157).png
-              color: '#ffffff',
-              padding: '8px 24px',
-              fontSize: '14px',
-              fontWeight: '600',
-              borderRadius: '4px',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Close
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {activeTab !== 'customer' && (
+              <button
+                type="button"
+                onClick={() => {
+                  const idx = tabs.findIndex((t) => t.id === activeTab);
+                  const nextTab = tabs[Math.min(idx + 1, tabs.length - 1)].id;
+                  handleSelectTab(nextTab);
+                }}
+                style={{
+                  background: '#e0f2fe',
+                  color: '#0369a1',
+                  padding: '8px 18px',
+                  fontSize: '13.5px',
+                  fontWeight: '700',
+                  borderRadius: '4px',
+                  border: '1px solid #7dd3fc',
+                  cursor: 'pointer'
+                }}
+              >
+                Next Tab →
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !hasReachedCustomerAccess}
+              title={hasReachedCustomerAccess ? 'Save Customer Master Record' : 'Reach the Customer Access tab to enable saving'}
+              style={{
+                background: hasReachedCustomerAccess ? '#0284c7' : '#cbd5e1',
+                color: hasReachedCustomerAccess ? '#ffffff' : '#64748b',
+                padding: '8px 24px',
+                fontSize: '14px',
+                fontWeight: '600',
+                borderRadius: '4px',
+                border: 'none',
+                cursor: (saving || !hasReachedCustomerAccess) ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                opacity: hasReachedCustomerAccess ? 1 : 0.75
+              }}
+            >
+              {saving ? 'Saving...' : 'Save Customer'}
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#64748b',
+                color: '#ffffff',
+                padding: '8px 24px',
+                fontSize: '14px',
+                fontWeight: '600',
+                borderRadius: '4px',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

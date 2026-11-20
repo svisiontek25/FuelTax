@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Truck, Plus, Trash2, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Truck, Plus, Edit, Trash2, CheckCircle, AlertCircle, X } from 'lucide-react';
 
 export default function PowerUnits({ currentFleetId }) {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingVehicleId, setEditingVehicleId] = useState(null);
   const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
 
-  // New vehicle form
+  // Vehicle form state
   const [unitNumber, setUnitNumber] = useState('');
   const [vin, setVin] = useState('');
   const [make, setMake] = useState('Freightliner');
   const [model, setModel] = useState('Cascadia');
   const [modelYear, setModelYear] = useState(2024);
-  const [fuelType, setFuelType] = useState('Diesel');
   const [gvw, setGvw] = useState(80000);
   const [axles, setAxles] = useState(5);
 
@@ -34,34 +35,72 @@ export default function PowerUnits({ currentFleetId }) {
     }
   };
 
-  const handleAddVehicle = async (e) => {
+  const handleOpenAdd = () => {
+    setEditingVehicleId(null);
+    setUnitNumber('');
+    setVin('');
+    setMake('Freightliner');
+    setModel('Cascadia');
+    setModelYear(2024);
+    setGvw(80000);
+    setAxles(5);
+    setError(null);
+    setShowModal(true);
+  };
+
+  // Module 9: Open Edit Power Unit Modal
+  const handleOpenEdit = (v) => {
+    setEditingVehicleId(v.id);
+    setUnitNumber(v.unit_number || '');
+    setVin(v.vin || '');
+    setMake(v.make || 'Freightliner');
+    setModel(v.model || 'Cascadia');
+    setModelYear(v.model_year || 2024);
+    setGvw(v.gross_vehicle_weight || 80000);
+    setAxles(v.number_of_axles || 5);
+    setError(null);
+    setShowModal(true);
+  };
+
+  const handleSaveVehicle = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccessMsg(null);
 
-    // Validate VIN
+    if (!unitNumber.trim()) {
+      setError('Unit Number is required.');
+      return;
+    }
+
     if (vin.trim().length !== 17) {
       setError('Standard commercial VIN must be exactly 17 alphanumeric characters.');
       return;
     }
 
-    try {
-      await api.createVehicle({
-        unit_number: unitNumber,
-        vin: vin.trim().toUpperCase(),
-        make,
-        model,
-        model_year: parseInt(modelYear, 10),
-        fuel_type: fuelType,
-        gross_vehicle_weight: parseInt(gvw, 10),
-        number_of_axles: parseInt(axles, 10),
-      }, currentFleetId);
+    const payload = {
+      unit_number: unitNumber.trim(),
+      vin: vin.trim().toUpperCase(),
+      make: make.trim() || 'Freightliner',
+      model: model.trim() || 'Cascadia',
+      model_year: parseInt(modelYear, 10) || 2024,
+      fuel_type: 'Diesel',
+      gross_vehicle_weight: parseInt(gvw, 10) || 80000,
+      number_of_axles: parseInt(axles, 10) || 5,
+    };
 
+    try {
+      if (editingVehicleId) {
+        await api.updateVehicle(editingVehicleId, payload);
+        setSuccessMsg(`Power Unit '${payload.unit_number}' updated. Historical Fuel, Mileage, and Tax records remain intact.`);
+      } else {
+        await api.createVehicle(payload, currentFleetId);
+        setSuccessMsg(`Power Unit '${payload.unit_number}' registered successfully.`);
+      }
       setShowModal(false);
-      setUnitNumber('');
-      setVin('');
+      setEditingVehicleId(null);
       loadVehicles();
     } catch (err) {
-      setError(err.message || 'Failed to add vehicle.');
+      setError(err.message || 'Failed to save power unit.');
     }
   };
 
@@ -69,6 +108,7 @@ export default function PowerUnits({ currentFleetId }) {
     if (!window.confirm('Are you sure you want to retire this power unit?')) return;
     try {
       await api.deleteVehicle(id);
+      setSuccessMsg('Power unit removed from active fleet.');
       loadVehicles();
     } catch (err) {
       alert(err.message || 'Failed to remove vehicle.');
@@ -89,17 +129,24 @@ export default function PowerUnits({ currentFleetId }) {
             Power Units & Equipment Inventory
           </h2>
           <p style={{ fontSize: '13px', color: '#64748b' }}>
-            Manage commercial vehicles registered for IFTA and IRP apportionment reporting.
+            Register and edit commercial vehicles registered for IFTA and IRP apportionment reporting.
           </p>
         </div>
 
         <button
-          onClick={() => { setShowModal(true); setError(null); }}
+          onClick={handleOpenAdd}
           className="btn btn-primary"
         >
           <Plus size={16} /> Add Power Unit
         </button>
       </div>
+
+      {successMsg && (
+        <div style={{ padding: '12px 16px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle size={18} />
+          <span>{successMsg}</span>
+        </div>
+      )}
 
       {/* Equipment Table */}
       <div className="card" style={{ overflow: 'hidden' }}>
@@ -149,10 +196,10 @@ export default function PowerUnits({ currentFleetId }) {
                     {v.model_year}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <span className="badge badge-info">{v.fuel_type}</span>
+                    <span className="badge badge-info">DIESEL</span>
                   </td>
                   <td style={{ padding: '12px 16px', color: '#334155' }} className="tabular-nums">
-                    {v.gross_vehicle_weight.toLocaleString()} lbs
+                    {Number(v.gross_vehicle_weight || 80000).toLocaleString()} lbs
                   </td>
                   <td style={{ padding: '12px 16px', color: '#334155' }}>
                     {v.number_of_axles} Axles
@@ -163,21 +210,33 @@ export default function PowerUnits({ currentFleetId }) {
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                    <button
-                      onClick={() => handleDelete(v.id)}
-                      title="Retire Power Unit"
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        padding: '4px'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(v)}
+                        title="Edit Power Unit Details"
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '4px 10px', fontSize: '12px' }}
+                      >
+                        <Edit size={13} /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(v.id)}
+                        title="Retire Power Unit"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#94a3b8',
+                          cursor: 'pointer',
+                          padding: '4px'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -186,7 +245,7 @@ export default function PowerUnits({ currentFleetId }) {
         </div>
       </div>
 
-      {/* Add Power Unit Modal */}
+      {/* Add / Edit Power Unit Modal (Module 9) */}
       {showModal && (
         <div style={{
           position: 'fixed',
@@ -218,7 +277,9 @@ export default function PowerUnits({ currentFleetId }) {
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '700' }}>Register Power Unit</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>
+                {editingVehicleId ? 'Edit Power Unit Details' : 'Register Power Unit'}
+              </h3>
               <button
                 onClick={() => setShowModal(false)}
                 style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
@@ -227,7 +288,7 @@ export default function PowerUnits({ currentFleetId }) {
               </button>
             </div>
 
-            <form onSubmit={handleAddVehicle} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleSaveVehicle} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {error && (
                 <div style={{
                   padding: '10px 14px',
@@ -235,9 +296,13 @@ export default function PowerUnits({ currentFleetId }) {
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
                   color: '#b91c1c',
-                  fontSize: '13px'
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}>
-                  {error}
+                  <AlertCircle size={16} />
+                  <span>{error}</span>
                 </div>
               )}
 
@@ -251,16 +316,17 @@ export default function PowerUnits({ currentFleetId }) {
                     required
                     value={unitNumber}
                     onChange={(e) => setUnitNumber(e.target.value)}
-                    placeholder="e.g. Unit 108"
+                    placeholder="e.g. Unit 101"
                     className="form-input"
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: '#475569' }}>
-                    Model Year
+                    Model Year *
                   </label>
                   <input
                     type="number"
+                    required
                     value={modelYear}
                     onChange={(e) => setModelYear(e.target.value)}
                     className="form-input"
@@ -278,7 +344,7 @@ export default function PowerUnits({ currentFleetId }) {
                   maxLength={17}
                   value={vin}
                   onChange={(e) => setVin(e.target.value.toUpperCase())}
-                  placeholder="e.g. 1FTNE34W0EDA10108"
+                  placeholder="e.g. 1FUJGLDR5DP101001"
                   className="form-input font-mono"
                 />
               </div>
@@ -286,10 +352,11 @@ export default function PowerUnits({ currentFleetId }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: '#475569' }}>
-                    Make
+                    Make *
                   </label>
                   <input
                     type="text"
+                    required
                     value={make}
                     onChange={(e) => setMake(e.target.value)}
                     placeholder="Freightliner"
@@ -298,10 +365,11 @@ export default function PowerUnits({ currentFleetId }) {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: '#475569' }}>
-                    Model
+                    Model *
                   </label>
                   <input
                     type="text"
+                    required
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
                     placeholder="Cascadia"
@@ -310,31 +378,42 @@ export default function PowerUnits({ currentFleetId }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: '#475569' }}>
                     Fuel Type
                   </label>
-                  <select
-                    value={fuelType}
-                    onChange={(e) => setFuelType(e.target.value)}
+                  <input
+                    type="text"
+                    value="Diesel"
+                    readOnly
                     className="form-input"
-                  >
-                    <option value="Diesel">Diesel</option>
-                    <option value="Gasoline">Gasoline</option>
-                    <option value="Propane">Propane</option>
-                    <option value="LNG">LNG</option>
-                    <option value="CNG">CNG</option>
-                  </select>
+                    style={{ background: '#f1f5f9', fontWeight: '700', color: '#334155' }}
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: '#475569' }}>
-                    Licensed GVW (lbs)
+                    Licensed GVW (lbs) *
                   </label>
                   <input
                     type="number"
+                    required
                     value={gvw}
                     onChange={(e) => setGvw(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: '#475569' }}>
+                    Axles *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={2}
+                    max={10}
+                    value={axles}
+                    onChange={(e) => setAxles(e.target.value)}
                     className="form-input"
                   />
                 </div>
@@ -352,7 +431,7 @@ export default function PowerUnits({ currentFleetId }) {
                   type="submit"
                   className="btn btn-primary"
                 >
-                  Save Power Unit
+                  {editingVehicleId ? 'Save Changes' : 'Register Power Unit'}
                 </button>
               </div>
             </form>

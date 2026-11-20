@@ -48,6 +48,17 @@ class VehicleCreateRequest(BaseModel):
     gross_vehicle_weight: int = 80000
     number_of_axles: int = 5
 
+class VehicleUpdateRequest(BaseModel):
+    unit_number: str
+    vin: str = Field(..., min_length=11, max_length=17)
+    make: Optional[str] = "Freightliner"
+    model: Optional[str] = "Cascadia"
+    model_year: Optional[int] = 2024
+    fuel_type: str = "Diesel"
+    gross_vehicle_weight: int = 80000
+    number_of_axles: int = 5
+    is_active: Optional[bool] = True
+
 class VehicleResponse(BaseModel):
     id: str
     fleet_id: str
@@ -87,6 +98,7 @@ class RouteValidationRequest(BaseModel):
 # --- Fuel Purchase Schemas ---
 class FuelPurchaseCreateRequest(BaseModel):
     vehicle_id: Optional[str] = None
+    unit_number: Optional[str] = None
     purchase_date: str
     quarter: str = "2026-Q1"
     jurisdiction: str
@@ -96,6 +108,11 @@ class FuelPurchaseCreateRequest(BaseModel):
     vendor: Optional[str] = None
     receipt_number: Optional[str] = None
     total_cost: Optional[float] = None
+
+# --- ZIP Distance Calculation Schema (Module 4) ---
+class ZipDistanceRequest(BaseModel):
+    origin_zip: str
+    destination_zip: str
 
 # --- Quick Calculator Sandbox Schema ---
 class CalculatorStateRow(BaseModel):

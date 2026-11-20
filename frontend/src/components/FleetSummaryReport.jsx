@@ -150,7 +150,7 @@ export default function FleetSummaryReport({ currentFleetId, quarter, fuelType, 
             )}
           </div>
           <p style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
-            Legal Entity: <strong>{meta?.company_name || '2AAB TRUCKING LLC'}</strong> • Period: <strong>{meta?.period || quarter}</strong> • Fuel: <strong>{fuelType}</strong>
+            Legal Entity: <strong>{meta?.company_name || user?.org_name || 'No Customer Selected'}</strong> • Period: <strong>{meta?.period || quarter}</strong> • Fuel: <strong>{fuelType}</strong>
           </p>
         </div>
 
@@ -196,8 +196,8 @@ export default function FleetSummaryReport({ currentFleetId, quarter, fuelType, 
       }}>
         <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 16px', textAlign: 'center' }}>
           <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Trip Count</div>
-          <div style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginTop: '4px' }}>
-            {meta?.trip_count || 7}
+          <div style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginTop: '4px' }} className="tabular-nums">
+            {meta?.trip_count ?? 0}
           </div>
         </div>
 
@@ -225,7 +225,7 @@ export default function FleetSummaryReport({ currentFleetId, quarter, fuelType, 
         <div style={{ background: '#fee2e2', border: '1px solid #f87171', borderRadius: '8px', padding: '12px 16px', textAlign: 'center' }}>
           <div style={{ fontSize: '11px', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase' }}>Total Due</div>
           <div style={{ fontSize: '22px', fontWeight: '800', color: '#b91c1c', marginTop: '2px' }} className="tabular-nums">
-            ${meta?.total_due ? meta.total_due.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
+            {meta?.total_due != null ? (meta.total_due < 0 ? `-$${Math.abs(meta.total_due).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : `$${meta.total_due.toLocaleString(undefined, { minimumFractionDigits: 2 })}`) : '$0.00'}
           </div>
         </div>
       </div>
@@ -463,7 +463,7 @@ export default function FleetSummaryReport({ currentFleetId, quarter, fuelType, 
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
                 <span style={{ color: '#64748b' }}>Fleet MPG Factor:</span>
-                <span style={{ fontWeight: '700' }}>{meta?.fleet_mpg || 6.56} MPG</span>
+                <span style={{ fontWeight: '700' }}>{(meta?.fleet_mpg ?? 0).toFixed(2)} MPG</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
                 <span style={{ color: '#64748b' }}>Taxable Gallons Consumed:</span>
