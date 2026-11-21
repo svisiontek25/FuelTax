@@ -52,27 +52,40 @@ jobs:
           script: |
             set -e
             echo "🚀 Starting deployment on Hostinger VPS..."
-            cd /var/www/fueltax
 
-            echo "📥 Pulling latest changes from GitHub..."
-            git fetch origin main
-            git reset --hard origin/main
+            if [ ! -d "/var/www/fueltax/.git" ]; then
+              echo "⚡ Application directory not found. Performing initial bootstrap..."
+              mkdir -p /var/www
+              git clone https://github.com/svisiontek25/FuelTax.git /var/www/fueltax
+              cd /var/www/fueltax
+              chmod +x deploy/setup_vps.sh
+              bash deploy/setup_vps.sh
+            else
+              cd /var/www/fueltax
+              echo "📥 Pulling latest changes from GitHub..."
+              git fetch origin main
+              git reset --hard origin/main
 
-            echo "📦 Updating Backend Dependencies..."
-            source venv/bin/activate
-            pip install --upgrade pip
-            pip install -r backend/requirements.txt
+              echo "📦 Updating Backend Dependencies..."
+              source venv/bin/activate
+              pip install --upgrade pip
+              pip install -r backend/requirements.txt
 
-            echo "⚛️ Building Frontend..."
-            cd frontend
-            npm install
-            npm run build
-            cd ..
+              echo "⚛️ Building Frontend..."
+              cd frontend
+              npm install
+              npm run build
+              cd ..
 
-            echo "🔄 Restarting Backend Service..."
-            sudo systemctl restart fueltax-backend
+              echo "🔄 Updating & Restarting Backend Service..."
+              sudo cp deploy/fueltax-backend.service /etc/systemd/system/fueltax-backend.service
+              sudo systemctl daemon-reload
+              sudo systemctl restart fueltax-backend
 
-            echo "🔄 Reloading Nginx..."
-            sudo systemctl reload nginx
+              echo "🔄 Updating & Reloading Nginx..."
+              sudo cp deploy/nginx.conf /etc/nginx/sites-available/fueltax
+              sudo ln -sf /etc/nginx/sites-available/fueltax /etc/nginx/sites-enabled/fueltax
+              sudo systemctl reload nginx
+            fi
 
             echo "✅ Deployment completed successfully!"

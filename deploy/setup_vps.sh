@@ -6,6 +6,7 @@
 # ==============================================================================
 
 set -e
+export DEBIAN_FRONTEND=noninteractive
 
 echo "=========================================================="
 echo " Starting FuelTaxPulse VPS Setup on Hostinger"
