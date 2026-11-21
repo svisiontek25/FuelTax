@@ -70,11 +70,36 @@ systemctl restart fueltax-backend
 
 # 8. Configure Nginx
 echo "--> Configuring Nginx reverse proxy..."
+
+# Stop and disable apache2 if present to free port 80
+if systemctl is-active --quiet apache2 2>/dev/null || which apache2 &>/dev/null; then
+    echo "Stopping and disabling Apache2 to free port 80 for Nginx..."
+    systemctl stop apache2 2>/dev/null || true
+    systemctl disable apache2 2>/dev/null || true
+fi
+
+# Print any active listeners on port 80/443
+echo "Active listeners on port 80 / 443:"
+ss -tulpn | grep -E ':80|:443' || true
+
+if command -v docker &>/dev/null; then
+    echo "Active Docker containers:"
+    docker ps || true
+fi
+
+# Clear any lingering process on port 80
+fuser -k 80/tcp 2>/dev/null || true
+
 cp "$APP_DIR/deploy/nginx.conf" /etc/nginx/sites-available/fueltax
 ln -sf /etc/nginx/sites-available/fueltax /etc/nginx/sites-enabled/fueltax
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
-systemctl restart nginx
+systemctl enable nginx
+systemctl restart nginx || {
+    echo "❌ Nginx failed to start. Logs:"
+    journalctl -xeu nginx --no-pager -n 30 || true
+    exit 1
+}
 
 # 9. Configure Firewall (UFW)
 echo "--> Configuring UFW firewall (OpenSSH, Nginx Full)..."

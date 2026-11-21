@@ -80,12 +80,31 @@ jobs:
               echo "🔄 Updating & Restarting Backend Service..."
               sudo cp deploy/fueltax-backend.service /etc/systemd/system/fueltax-backend.service
               sudo systemctl daemon-reload
+              sudo systemctl enable fueltax-backend
               sudo systemctl restart fueltax-backend
 
-              echo "🔄 Updating & Reloading Nginx..."
+              echo "🔄 Checking port 80 and configuring Nginx..."
+              sudo systemctl stop apache2 2>/dev/null || true
+              sudo systemctl disable apache2 2>/dev/null || true
+
+              echo "Active listeners on port 80/443:"
+              ss -tulpn | grep -E ':80|:443' || true
+              if command -v docker &>/dev/null; then
+                docker ps || true
+              fi
+
+              sudo fuser -k 80/tcp 2>/dev/null || true
+
               sudo cp deploy/nginx.conf /etc/nginx/sites-available/fueltax
               sudo ln -sf /etc/nginx/sites-available/fueltax /etc/nginx/sites-enabled/fueltax
-              sudo systemctl reload nginx
+              sudo rm -f /etc/nginx/sites-enabled/default
+              sudo nginx -t
+              sudo systemctl enable nginx
+              sudo systemctl restart nginx || {
+                echo "❌ Nginx restart failed. Diagnostic logs:"
+                journalctl -xeu nginx --no-pager -n 30 || true
+                exit 1
+              }
             fi
 
             echo "✅ Deployment completed successfully!"
