@@ -1,0 +1,77 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test_and_build:
+    name: Build & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate Python Backend Syntax
+        run: |
+          python -m py_compile backend/*.py
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+  deploy:
+    name: Deploy to Hostinger VPS
+    needs: test_and_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute Deployment on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_PORT || 22 }}
+          script: |
+            set -e
+            echo "🚀 Starting deployment on Hostinger VPS..."
+            cd /var/www/fueltax
+
+            echo "📥 Pulling latest changes from GitHub..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "📦 Updating Backend Dependencies..."
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r backend/requirements.txt
+
+            echo "⚛️ Building Frontend..."
+            cd frontend
+            npm install
+            npm run build
+            cd ..
+
+            echo "🔄 Restarting Backend Service..."
+            sudo systemctl restart fueltax-backend
+
+            echo "🔄 Reloading Nginx..."
+            sudo systemctl reload nginx
+
+            echo "✅ Deployment completed successfully!"
